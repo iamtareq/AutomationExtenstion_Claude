@@ -306,6 +306,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Add API Test button functionality
+    const openApiTestBtn = document.getElementById('openApiTestBtn');
+    if (openApiTestBtn) {
+        openApiTestBtn.addEventListener('click', () => {
+            // Use chrome.runtime.getURL and chrome.tabs.create when available, otherwise fallback
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.tabs) {
+                const apiTestUrl = chrome.runtime.getURL('apitest.html');
+                chrome.tabs.create({ url: apiTestUrl });
+            } else {
+                // Fallback for testing outside extension context
+                window.open('apitest.html', '_blank');
+            }
+        });
+    }
+
     document.querySelectorAll('.copy-btn').forEach(button => {
         button.addEventListener('click', () => {
             const targetId = button.getAttribute('data-target');
