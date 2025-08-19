@@ -6,7 +6,8 @@
     "permissions": [
         "storage",
         "scripting",
-        "webRequest"
+        "webRequest",
+        "tabs"
     ],
     "host_permissions": [
         "<all_urls>"
@@ -31,7 +32,7 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": [ "view.html", "view.js" ],
+            "resources": [ "view.html", "view.js", "apitest.html" ],
             "matches": [ "<all_urls>" ]
         }
     ]
