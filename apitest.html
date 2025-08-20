@@ -198,6 +198,15 @@
         .btn-success:hover {
             background: var(--success-hover);
         }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
 
         .btn-secondary {
             background: var(--input-bg-light);
@@ -352,6 +361,161 @@
         .toast.info {
             background: var(--accent);
         }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: var(--card-light);
+            margin: 15% auto;
+            padding: var(--space-xl);
+            border: 1px solid var(--card-border-light);
+            border-radius: var(--radius-lg);
+            width: 80%;
+            max-width: 500px;
+        }
+        
+        body.dark-mode .modal-content {
+            background-color: var(--card-dark);
+            border-color: var(--card-border-dark);
+        }
+        
+        .modal-header {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: flex-end;
+            margin-top: var(--space-lg);
+        }
+        
+        /* Response viewer styles */
+        .response-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1002;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .response-content {
+            background: var(--card-light);
+            border-radius: var(--radius-lg);
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        body.dark-mode .response-content {
+            background: var(--card-dark);
+        }
+        
+        .response-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--card-border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        body.dark-mode .response-header {
+            border-bottom-color: var(--card-border-dark);
+        }
+        
+        .response-body {
+            padding: var(--space-lg);
+            overflow: auto;
+            flex: 1;
+            min-height: 300px;
+        }
+        
+        .response-json {
+            background: var(--code-light);
+            border: 1px solid var(--code-border-light);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 60vh;
+            overflow: auto;
+        }
+        
+        body.dark-mode .response-json {
+            background: var(--code-dark);
+            border-color: var(--code-border-dark);
+        }
+        
+        /* Edit body panel styles */
+        .edit-body-panel {
+            display: none;
+            background: var(--card-light);
+            border: 1px solid var(--card-border-light);
+            border-radius: var(--radius-md);
+            margin-top: var(--space-sm);
+            padding: var(--space-lg);
+        }
+        
+        body.dark-mode .edit-body-panel {
+            background: var(--card-dark);
+            border-color: var(--card-border-dark);
+        }
+        
+        .edit-body-textarea {
+            width: 100%;
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            background: var(--input-bg-light);
+            border: 1px solid var(--input-border-light);
+            border-radius: var(--radius-sm);
+            padding: var(--space-md);
+            resize: vertical;
+        }
+        
+        body.dark-mode .edit-body-textarea {
+            background: var(--input-bg-dark);
+            border-color: var(--input-border-dark);
+            color: var(--text-dark);
+        }
+        
+        .edit-body-buttons {
+            margin-top: var(--space-md);
+            display: flex;
+            gap: var(--space-sm);
+            justify-content: flex-end;
+        }
+        
+        /* Collapsible table rows */
+        .expanded-row {
+            display: none;
+        }
+        
+        .expanded-row.show {
+            display: table-row;
+        }
     </style>
 </head>
 <body>
@@ -400,6 +564,7 @@
                 <button id="reloadBtn" class="btn-secondary">🔄 Reload</button>
                 <button id="selectAllBtn" class="btn-secondary">☑️ Select All</button>
                 <button id="clearSelectionBtn" class="btn-secondary">☐ Clear Selection</button>
+                <button id="clearCapturedBtn" class="btn-secondary">🗑️ Clear Captured Requests</button>
                 <button id="saveSettingsBtn" class="btn-secondary">💾 Save Settings</button>
                 <button id="runSelectedBtn" class="btn-success">▶️ Run Selected</button>
             </div>
@@ -418,12 +583,13 @@
                         <th>URL</th>
                         <th>Action</th>
                         <th>Payload</th>
+                        <th>Edit Body</th>
                         <th>Time</th>
                     </tr>
                 </thead>
                 <tbody id="requestsBody">
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: var(--space-xl); color: #666;">
+                        <td colspan="7" style="text-align: center; padding: var(--space-xl); color: #666;">
                             Loading requests...
                         </td>
                     </tr>
@@ -442,11 +608,12 @@
                         <th>Status</th>
                         <th>Time (ms)</th>
                         <th>Note</th>
+                        <th>Response</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody">
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: var(--space-xl); color: #666;">
+                        <td colspan="6" style="text-align: center; padding: var(--space-xl); color: #666;">
                             No tests run yet...
                         </td>
                     </tr>
@@ -470,6 +637,34 @@
                 <span>📊</span>
                 <span id="totalCount">0</span>
                 <span>total</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Confirmation Modal -->
+    <div id="clearModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Clear Captured Requests</div>
+            <p>Are you sure you want to clear all captured requests? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button id="clearCancel" class="btn-secondary">Cancel</button>
+                <button id="clearConfirm" class="btn-danger">Yes, Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Viewer Modal -->
+    <div id="responseViewer" class="response-viewer">
+        <div class="response-content">
+            <div class="response-header">
+                <h3 id="responseTitle">Response</h3>
+                <div>
+                    <button id="copyResponseBtn" class="btn-secondary">📋 Copy</button>
+                    <button id="closeResponseBtn" class="btn-secondary">✕ Close</button>
+                </div>
+            </div>
+            <div class="response-body">
+                <pre id="responseJson" class="response-json"></pre>
             </div>
         </div>
     </div>

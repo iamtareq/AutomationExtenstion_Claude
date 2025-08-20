@@ -134,7 +134,7 @@ chrome.webRequest.onCompleted.addListener(
                 action,
                 url: details.url,
                 method: details.method,
-                time: new Date().toLocaleTimeString(),
+                time: new Date().toISOString(),
                 payload: payload || null
             };
 
