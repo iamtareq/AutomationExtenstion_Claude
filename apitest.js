@@ -730,35 +730,35 @@ function generateSampleData() {
             action: 'login',
             url: '/api/auth/login',
             method: 'POST',
-            time: '10:30:15',
+            time: new Date().toISOString(),
             payload: { username: 'test@example.com', password: 'password123' }
         },
         {
             action: 'users',
             url: 'https://jsonplaceholder.typicode.com/users',
             method: 'GET',
-            time: '10:30:20',
+            time: new Date(Date.now() - 5000).toISOString(),
             payload: null
         },
         {
             action: 'posts',
             url: '/api/posts',
             method: 'POST',
-            time: '10:30:25',
+            time: new Date(Date.now() - 10000).toISOString(),
             payload: { title: 'Test Post', content: 'This is a test post content.' }
         },
         {
             action: 'update',
             url: '/api/user/profile',
             method: 'PUT',
-            time: '10:30:30',
+            time: new Date(Date.now() - 15000).toISOString(),
             payload: 'name=John+Doe&email=john@example.com&age=30'
         },
         {
             action: 'delete',
             url: '/api/posts/123',
             method: 'DELETE',
-            time: '10:30:35',
+            time: new Date(Date.now() - 20000).toISOString(),
             payload: null
         }
     ];
