@@ -28,11 +28,16 @@
             "matches": [ "<all_urls>" ],
             "js": [ "content.js" ],
             "run_at": "document_idle"
+        },
+        {
+            "matches": [ "<all_urls>" ],
+            "js": [ "xhr-interceptor.js" ],
+            "run_at": "document_start"
         }
     ],
     "web_accessible_resources": [
         {
-            "resources": [ "view.html", "view.js", "apitest.html" ],
+            "resources": [ "view.html", "view.js", "apitest.html", "xhr-interceptor.js" ],
             "matches": [ "<all_urls>" ]
         }
     ]
