@@ -72,26 +72,46 @@ function setupEventListeners() {
     document.addEventListener('click', (e) => {
         // Handle Edit Body buttons
         if (e.target.classList.contains('edit-body-btn')) {
+            e.preventDefault(); // Prevent any default behavior
+            e.stopPropagation(); // Stop event bubbling
             const index = parseInt(e.target.getAttribute('data-index'));
-            toggleEditBody(index);
+            if (!isNaN(index)) {
+                toggleEditBody(index);
+            }
+            return;
         }
         
         // Handle Cancel Edit buttons
         if (e.target.classList.contains('cancel-edit-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
             const index = parseInt(e.target.getAttribute('data-index'));
-            cancelEditBody(index);
+            if (!isNaN(index)) {
+                cancelEditBody(index);
+            }
+            return;
         }
         
         // Handle Validate Body buttons
         if (e.target.classList.contains('validate-body-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
             const index = parseInt(e.target.getAttribute('data-index'));
-            validateBody(index);
+            if (!isNaN(index)) {
+                validateBody(index);
+            }
+            return;
         }
         
         // Handle View Response buttons
         if (e.target.classList.contains('view-response-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
             const index = parseInt(e.target.getAttribute('data-index'));
-            viewResponse(index);
+            if (!isNaN(index)) {
+                viewResponse(index);
+            }
+            return;
         }
     });
 }
@@ -930,36 +950,36 @@ function generateSampleData() {
     return [
         {
             action: 'login',
-            url: '/api/auth/login',
+            url: '/api/auth/login?redirect=dashboard&remember=true',
             method: 'POST',
             time: new Date().toISOString(),
             payload: { username: 'test@example.com', password: 'password123' }
         },
         {
             action: 'users',
-            url: 'https://jsonplaceholder.typicode.com/users',
+            url: 'https://jsonplaceholder.typicode.com/users?page=1&limit=10&sort=name',
             method: 'GET',
             time: new Date(Date.now() - 5000).toISOString(),
             payload: null
         },
         {
             action: 'posts',
-            url: '/api/posts',
+            url: '/api/posts?category=tech&draft=false',
             method: 'POST',
             time: new Date(Date.now() - 10000).toISOString(),
             payload: { title: 'Test Post', content: 'This is a test post content.' }
         },
         {
             action: 'update',
-            url: '/api/user/profile',
+            url: '/api/user/profile?version=2&notify=true',
             method: 'PUT',
             time: new Date(Date.now() - 15000).toISOString(),
             payload: 'name=John+Doe&email=john@example.com&age=30'
         },
         {
-            action: 'delete',
-            url: '/api/posts/123',
-            method: 'DELETE',
+            action: 'search',
+            url: '/api/search?q=javascript&type=articles&page=1&per_page=20',
+            method: 'GET',
             time: new Date(Date.now() - 20000).toISOString(),
             payload: null
         }
