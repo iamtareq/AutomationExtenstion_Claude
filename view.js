@@ -312,11 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
         openApiTestBtn.addEventListener('click', () => {
             // Use chrome.runtime.getURL and chrome.tabs.create when available, otherwise fallback
             if (typeof chrome !== 'undefined' && chrome.runtime && chrome.tabs) {
-                const apiTestUrl = chrome.runtime.getURL('apitest.html?clearPrompt=1');
+                const apiTestUrl = chrome.runtime.getURL('apitest.html');
                 chrome.tabs.create({ url: apiTestUrl });
             } else {
                 // Fallback for testing outside extension context
-                window.open('apitest.html?clearPrompt=1', '_blank');
+                window.open('apitest.html', '_blank');
             }
         });
     }
