@@ -18,12 +18,6 @@ const defaultSettings = {
  * Initialize the application on page load
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Check for clearPrompt parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('clearPrompt') === '1') {
-        showClearModal();
-    }
-    
     // Load saved settings
     loadSettings();
     
@@ -72,6 +66,33 @@ function setupEventListeners() {
     });
     document.getElementById('responseViewer').addEventListener('click', (e) => {
         if (e.target.id === 'responseViewer') hideResponseViewer();
+    });
+    
+    // Delegated event listeners for dynamically created buttons
+    document.addEventListener('click', (e) => {
+        // Handle Edit Body buttons
+        if (e.target.classList.contains('edit-body-btn')) {
+            const index = parseInt(e.target.getAttribute('data-index'));
+            toggleEditBody(index);
+        }
+        
+        // Handle Cancel Edit buttons
+        if (e.target.classList.contains('cancel-edit-btn')) {
+            const index = parseInt(e.target.getAttribute('data-index'));
+            cancelEditBody(index);
+        }
+        
+        // Handle Validate Body buttons
+        if (e.target.classList.contains('validate-body-btn')) {
+            const index = parseInt(e.target.getAttribute('data-index'));
+            validateBody(index);
+        }
+        
+        // Handle View Response buttons
+        if (e.target.classList.contains('view-response-btn')) {
+            const index = parseInt(e.target.getAttribute('data-index'));
+            viewResponse(index);
+        }
     });
 }
 
@@ -219,7 +240,7 @@ function renderRequestsTable() {
                 <td>${log.action}</td>
                 <td class="payload-cell" title="${payloadSummary}">${payloadSummary}</td>
                 <td>
-                    ${canEditBody ? `<button class="btn-secondary" onclick="toggleEditBody(${index})" style="font-size: 0.8rem;">✏️ Edit</button>` : '<span style="color: #888;">N/A</span>'}
+                    ${canEditBody ? `<button class="btn-secondary edit-body-btn" data-index="${index}" style="font-size: 0.8rem;">✏️ Edit</button>` : '<span style="color: #888;">N/A</span>'}
                 </td>
                 <td>${new Date(log.time).toLocaleString()}</td>
             </tr>
@@ -227,11 +248,17 @@ function renderRequestsTable() {
             <tr class="expanded-row" id="editRow${index}">
                 <td colspan="7">
                     <div class="edit-body-panel">
-                        <label style="font-weight: 600; margin-bottom: var(--space-sm); display: block;">Edit Request Body:</label>
-                        <textarea class="edit-body-textarea" id="editBody${index}" placeholder="Enter JSON or form data...">${log.payload ? (typeof log.payload === 'object' ? JSON.stringify(log.payload, null, 2) : log.payload) : ''}</textarea>
+                        <div style="margin-bottom: var(--space-lg);">
+                            <label style="font-weight: 600; margin-bottom: var(--space-sm); display: block;">Query Parameters:</label>
+                            <div id="paramsGrid${index}" class="params-grid"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; margin-bottom: var(--space-sm); display: block;">Request Body:</label>
+                            <textarea class="edit-body-textarea" id="editBody${index}" placeholder="Enter JSON or form data...">${log.payload ? (typeof log.payload === 'object' ? JSON.stringify(log.payload, null, 2) : log.payload) : ''}</textarea>
+                        </div>
                         <div class="edit-body-buttons">
-                            <button class="btn-secondary" onclick="cancelEditBody(${index})">Cancel</button>
-                            <button class="btn-primary" onclick="validateBody(${index})">Validate & Save</button>
+                            <button class="btn-secondary cancel-edit-btn" data-index="${index}">Cancel</button>
+                            <button class="btn-primary validate-body-btn" data-index="${index}">Validate & Save</button>
                         </div>
                         <div id="validationMessage${index}" style="margin-top: var(--space-sm); font-size: 0.9em;"></div>
                     </div>
@@ -355,8 +382,9 @@ async function runSingleTest(log, settings, allowedStatusCodes) {
     const startTime = Date.now();
     
     try {
-        // Resolve the URL
-        const resolvedUrl = resolveUrl(log.url, settings.baseUrl);
+        // Use edited URL if available, otherwise use original
+        const urlToUse = log.editedUrl || log.url;
+        const resolvedUrl = resolveUrl(urlToUse, settings.baseUrl);
         
         // Use edited payload if available, otherwise use original
         const payloadToUse = log.editedPayload !== undefined ? log.editedPayload : log.payload;
@@ -523,7 +551,7 @@ function updateResultsTable() {
                 <td>${result.time}</td>
                 <td>${result.note}</td>
                 <td>
-                    ${result.responseText ? `<button class="btn-secondary" onclick="viewResponse(${index})" style="font-size: 0.8rem;">👁️ View</button>` : '<span style="color: #888;">N/A</span>'}
+                    ${result.responseText ? `<button class="btn-secondary view-response-btn" data-index="${index}" style="font-size: 0.8rem;">👁️ View</button>` : '<span style="color: #888;">N/A</span>'}
                 </td>
             </tr>
         `;
@@ -651,6 +679,78 @@ function hideResponseViewer() {
 }
 
 /**
+ * Parse query parameters from URL
+ */
+function parseQueryParams(url) {
+    const params = [];
+    try {
+        const urlObj = new URL(url);
+        urlObj.searchParams.forEach((value, key) => {
+            params.push({ key, value });
+        });
+    } catch (e) {
+        // If URL parsing fails, try to extract query string manually
+        const queryStart = url.indexOf('?');
+        if (queryStart !== -1) {
+            const queryString = url.substring(queryStart + 1);
+            const pairs = queryString.split('&');
+            for (const pair of pairs) {
+                const [key, value] = pair.split('=');
+                if (key) {
+                    params.push({ 
+                        key: decodeURIComponent(key), 
+                        value: decodeURIComponent(value || '') 
+                    });
+                }
+            }
+        }
+    }
+    return params;
+}
+
+/**
+ * Build URL with updated parameters
+ */
+function buildUrlWithParams(baseUrl, params) {
+    try {
+        const urlObj = new URL(baseUrl);
+        urlObj.search = ''; // Clear existing params
+        
+        params.forEach(param => {
+            if (param.key && param.key.trim()) {
+                urlObj.searchParams.set(param.key.trim(), param.value || '');
+            }
+        });
+        
+        return urlObj.toString();
+    } catch (e) {
+        // Fallback to manual construction
+        const baseWithoutQuery = baseUrl.split('?')[0];
+        const queryString = params
+            .filter(p => p.key && p.key.trim())
+            .map(p => `${encodeURIComponent(p.key.trim())}=${encodeURIComponent(p.value || '')}`)
+            .join('&');
+        
+        return queryString ? `${baseWithoutQuery}?${queryString}` : baseWithoutQuery;
+    }
+}
+
+/**
+ * Copy response text to clipboard
+ */
+function copyResponse() {
+    const responseText = document.getElementById('responseJson').textContent;
+    if (responseText) {
+        navigator.clipboard.writeText(responseText).then(() => {
+            showToast('Response copied to clipboard!', 'success');
+        }).catch((err) => {
+            console.error('Failed to copy response:', err);
+            showToast('Failed to copy response', 'error');
+        });
+    }
+}
+
+/**
  * Toggle edit body panel for a request
  */
 function toggleEditBody(index) {
@@ -664,7 +764,88 @@ function toggleEditBody(index) {
     
     if (!isVisible) {
         editRow.classList.add('show');
+        // Populate the parameter grid
+        populateParameterGrid(index);
     }
+}
+
+/**
+ * Populate parameter grid with URL query parameters
+ */
+function populateParameterGrid(index) {
+    const log = filteredLogs[index];
+    const paramsGrid = document.getElementById(`paramsGrid${index}`);
+    
+    if (!paramsGrid) return;
+    
+    const params = parseQueryParams(log.url);
+    
+    // Clear existing grid
+    paramsGrid.innerHTML = '';
+    
+    // Add header row
+    paramsGrid.innerHTML = `
+        <div style="font-weight: 600; font-size: 0.9rem;">Key</div>
+        <div style="font-weight: 600; font-size: 0.9rem;">Value</div>
+        <div></div>
+    `;
+    
+    // Add parameter rows
+    params.forEach((param, paramIndex) => {
+        addParameterRow(paramsGrid, index, paramIndex, param.key, param.value);
+    });
+    
+    // Add empty row for new parameters
+    addParameterRow(paramsGrid, index, params.length, '', '');
+    
+    // Add "Add Parameter" button
+    const addButton = document.createElement('button');
+    addButton.className = 'btn-secondary';
+    addButton.textContent = '+ Add Parameter';
+    addButton.style.fontSize = '0.8rem';
+    addButton.style.gridColumn = '1 / -1';
+    addButton.style.marginTop = 'var(--space-sm)';
+    addButton.addEventListener('click', () => {
+        const newIndex = paramsGrid.querySelectorAll('.param-input').length / 2;
+        addParameterRow(paramsGrid, index, newIndex, '', '');
+    });
+    paramsGrid.appendChild(addButton);
+}
+
+/**
+ * Add a parameter row to the grid
+ */
+function addParameterRow(grid, requestIndex, paramIndex, key, value) {
+    const keyInput = document.createElement('input');
+    keyInput.type = 'text';
+    keyInput.className = 'param-input';
+    keyInput.placeholder = 'Parameter name';
+    keyInput.value = key;
+    keyInput.setAttribute('data-param-key', paramIndex);
+    
+    const valueInput = document.createElement('input');
+    valueInput.type = 'text';
+    valueInput.className = 'param-input';
+    valueInput.placeholder = 'Parameter value';
+    valueInput.value = value;
+    valueInput.setAttribute('data-param-value', paramIndex);
+    
+    const removeButton = document.createElement('button');
+    removeButton.className = 'btn-secondary';
+    removeButton.textContent = '×';
+    removeButton.style.fontSize = '0.8rem';
+    removeButton.style.width = '30px';
+    removeButton.style.height = '30px';
+    removeButton.style.padding = '0';
+    removeButton.addEventListener('click', () => {
+        keyInput.remove();
+        valueInput.remove();
+        removeButton.remove();
+    });
+    
+    grid.appendChild(keyInput);
+    grid.appendChild(valueInput);
+    grid.appendChild(removeButton);
 }
 
 /**
@@ -685,10 +866,31 @@ function cancelEditBody(index) {
 function validateBody(index) {
     const textarea = document.getElementById(`editBody${index}`);
     const messageDiv = document.getElementById(`validationMessage${index}`);
+    const paramsGrid = document.getElementById(`paramsGrid${index}`);
     const bodyText = textarea.value.trim();
     
     let isValid = true;
     let message = '';
+    
+    // Validate and save URL parameters
+    const params = [];
+    if (paramsGrid) {
+        const keyInputs = paramsGrid.querySelectorAll('input[data-param-key]');
+        const valueInputs = paramsGrid.querySelectorAll('input[data-param-value]');
+        
+        for (let i = 0; i < keyInputs.length; i++) {
+            const key = keyInputs[i].value.trim();
+            const value = valueInputs[i].value.trim();
+            if (key) {
+                params.push({ key, value });
+            }
+        }
+        
+        // Build updated URL
+        const originalLog = filteredLogs[index];
+        const updatedUrl = buildUrlWithParams(originalLog.url, params);
+        filteredLogs[index].editedUrl = updatedUrl;
+    }
     
     if (bodyText) {
         // Try to validate as JSON
@@ -720,7 +922,7 @@ function validateBody(index) {
         setTimeout(() => {
             document.getElementById(`editRow${index}`).classList.remove('show');
             messageDiv.textContent = '';
-            showToast('Body saved for request!', 'success');
+            showToast('Request parameters and body saved!', 'success');
         }, 1000);
     }
 }
@@ -782,5 +984,28 @@ style.textContent = `
     .method-delete { background: #ef4444; }
     .method-head { background: #6b7280; }
     .method-options { background: #6b7280; }
+    
+    .params-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: var(--space-sm);
+        align-items: center;
+        margin-bottom: var(--space-md);
+    }
+    
+    .param-input {
+        padding: var(--space-sm);
+        border: 1px solid var(--input-border-light);
+        border-radius: var(--radius-sm);
+        background: var(--input-bg-light);
+        font-family: inherit;
+        font-size: 0.9rem;
+    }
+    
+    body.dark-mode .param-input {
+        background: var(--input-bg-dark);
+        border-color: var(--input-border-dark);
+        color: var(--text-dark);
+    }
 `;
 document.head.appendChild(style);
