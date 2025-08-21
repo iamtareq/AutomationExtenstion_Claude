@@ -248,7 +248,7 @@ function renderRequestsTable() {
     
     tbody.innerHTML = filteredLogs.map((log, index) => {
         const payloadSummary = getPayloadSummary(log.payload);
-        const canEditBody = log.method !== 'GET' && log.method !== 'HEAD';
+        const hasBodyContent = log.method !== 'GET' && log.method !== 'HEAD';
         
         return `
             <tr>
@@ -260,11 +260,10 @@ function renderRequestsTable() {
                 <td>${log.action}</td>
                 <td class="payload-cell" title="${payloadSummary}">${payloadSummary}</td>
                 <td>
-                    ${canEditBody ? `<button class="btn-secondary edit-body-btn" data-index="${index}" style="font-size: 0.8rem;">✏️ Edit</button>` : '<span style="color: #888;">N/A</span>'}
+                    <button class="btn-secondary edit-body-btn" data-index="${index}" style="font-size: 0.8rem;">✏️ Edit</button>
                 </td>
                 <td>${new Date(log.time).toLocaleString()}</td>
             </tr>
-            ${canEditBody ? `
             <tr class="expanded-row" id="editRow${index}">
                 <td colspan="7">
                     <div class="edit-body-panel">
@@ -272,10 +271,12 @@ function renderRequestsTable() {
                             <label style="font-weight: 600; margin-bottom: var(--space-sm); display: block;">Query Parameters:</label>
                             <div id="paramsGrid${index}" class="params-grid"></div>
                         </div>
+                        ${hasBodyContent ? `
                         <div>
                             <label style="font-weight: 600; margin-bottom: var(--space-sm); display: block;">Request Body:</label>
                             <textarea class="edit-body-textarea" id="editBody${index}" placeholder="Enter JSON or form data...">${log.payload ? (typeof log.payload === 'object' ? JSON.stringify(log.payload, null, 2) : log.payload) : ''}</textarea>
                         </div>
+                        ` : ''}
                         <div class="edit-body-buttons">
                             <button class="btn-secondary cancel-edit-btn" data-index="${index}">Cancel</button>
                             <button class="btn-primary validate-body-btn" data-index="${index}">Validate & Save</button>
@@ -284,7 +285,6 @@ function renderRequestsTable() {
                     </div>
                 </td>
             </tr>
-            ` : ''}
         `;
     }).join('');
 }
